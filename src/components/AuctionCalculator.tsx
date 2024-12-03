@@ -1,7 +1,6 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { useAuctionStore } from '../store/auctionStore';
 import { PlusCircle, MinusCircle, Dice6, RotateCcw, XCircle } from 'lucide-react';
-import { BidInput } from './BidInput';
 import { BidTable } from './BidTable';
 import { AuctionResults } from './AuctionResults';
 
@@ -11,7 +10,6 @@ export function AuctionCalculator() {
     itemCount,
     bidderCount,
     results,
-    setBids,
     setItemCount,
     setBidderCount,
     calculateResults,
@@ -19,15 +17,6 @@ export function AuctionCalculator() {
     clearAll,
     regenerateAuction
   } = useAuctionStore();
-
-  const [newBid, setNewBid] = useState({ bidderId: 1, amount: '' });
-
-  const addBid = () => {
-    if (newBid.amount && !isNaN(Number(newBid.amount))) {
-      setBids([...bids, { ...newBid, amount: Number(newBid.amount) }]);
-      setNewBid({ bidderId: 1, amount: '' });
-    }
-  };
 
   return (
     <div className="max-w-7xl mx-auto p-6">
@@ -69,13 +58,6 @@ export function AuctionCalculator() {
                 <PlusCircle size={20} />
               </button>
             </div>
-
-            <BidInput
-              bidderCount={bidderCount}
-              newBid={newBid}
-              setNewBid={setNewBid}
-              onAdd={addBid}
-            />
 
             <div className="space-y-2">
               <button
