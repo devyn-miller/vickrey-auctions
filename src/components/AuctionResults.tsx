@@ -8,6 +8,13 @@ export function AuctionResults() {
 
   if (!results) return null;
 
+  // Sort winners by highest winning bid first
+  const sortedWinners = [...results.winners].sort((a, b) => {
+    const maxBidA = Math.max(...a.winningBids);
+    const maxBidB = Math.max(...b.winningBids);
+    return maxBidB - maxBidA;
+  });
+
   return (
     <div className="space-y-6">
       <div>
@@ -18,9 +25,9 @@ export function AuctionResults() {
       </div>
       
       <div className="space-y-4">
-        {results.winners.map((winner, index) => (
+        {sortedWinners.map((winner, index) => (
           <div key={index} className="bg-gradient-to-br from-green-50 to-emerald-50 p-4 rounded-lg border border-green-100">
-            <h4 className="font-semibold text-lg mb-2">Bidder {winner.bidderId + 1}</h4>
+            <h4 className="font-semibold text-lg mb-2">Bidder {winner.bidderId}</h4>
             <div className="space-y-2">
               <p className="text-gray-700">
                 Winning bids: {winner.winningBids.map(bid => `$${bid}`).join(', ')}
