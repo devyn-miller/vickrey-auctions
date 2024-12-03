@@ -74,7 +74,7 @@ export const useAuctionStore = create<AuctionStore>((set, get) => ({
   },
 
   generateRandomBids: () => {
-    const { bidderCount, equalBidsPerBidder, bidsPerBidder, bidderConfigs } = get();
+    const { bidderCount, equalBidsPerBidder, bidsPerBidder, bidderConfigs, itemCount } = get();
     const bids: Bid[] = [];
     
     if (equalBidsPerBidder) {
@@ -99,7 +99,10 @@ export const useAuctionStore = create<AuctionStore>((set, get) => ({
       });
     }
     
+    // Set bids and automatically calculate results
     set({ bids });
+    const results = calculateVickreyAuction(bids, itemCount);
+    set({ results });
   },
 
   clearAll: () => {

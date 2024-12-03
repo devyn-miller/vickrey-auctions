@@ -1,16 +1,57 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAuctionStore } from '../store/auctionStore';
 import { BidTable } from './BidTable';
 import { AuctionResults } from './AuctionResults';
 import { AuctionSettings } from './auction-settings/AuctionSettings';
 
 export function AuctionCalculator() {
-  const {
-    bids,
-    results,
-    generateRandomBids,
-    clearAll,
+  const { 
+    bids, 
+    setBids, 
+    results, 
+    generateRandomBids, 
+    clearAll
   } = useAuctionStore();
+
+  const [localBids, setLocalBids] = useState(bids);
+  const [copied, setCopied] = useState(false);
+
+  useEffect(() => {
+    setLocalBids(bids);
+  }, [bids]);
+
+  const handleBidChange = (bidderId: number, unitIndex: number, amount: number) => {
+    const updatedBids = localBids.map(bid => 
+      bid.bidderId === bidderId && bid.unitIndex === unitIndex 
+        ? { ...bid, amount } 
+        : bid
+    );
+    setLocalBids(updatedBids);
+    // Automatically update bids when changed
+    setBids(updatedBids);
+  };
+
+  const handleShareResults = () => {
+    if (!results) return;
+
+    const shareText = `Vickrey Auction Results:
+Total Auction Value: $${results.totalValue}
+
+Winners:
+${results.winners.map(winner => 
+  `Bidder ${winner.bidderId}:
+  - Winning Bids: ${winner.winningBids.map(b => `$${b}`).join(', ')}
+  - Vickrey Price: $${winner.vickreyPrice}`
+).join('\n\n')}
+
+Calculated using Vickrey Auction Helper: ${window.location.href}`;
+
+    // Copy to clipboard
+    navigator.clipboard.writeText(shareText).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    });
+  };
 
   return (
     <div className="max-w-7xl mx-auto p-6">
@@ -47,13 +88,30 @@ export function AuctionCalculator() {
           {/* Bid Table */}
           <div className="bg-white rounded-xl shadow-lg p-6 border border-gray-100">
             <h2 className="text-2xl font-bold mb-6 text-gray-800">Current Bids</h2>
-            <BidTable />
+            <BidTable 
+              bids={localBids} 
+              handleBidChange={handleBidChange} 
+            />
           </div>
         </div>
 
         {/* Right Column: Results */}
         <div className="space-y-6">
-          {results && <AuctionResults />}
+          {results && (
+            <div>
+              <AuctionResults />
+              <button 
+                onClick={handleShareResults}
+                className={`px-4 py-2 rounded bg-blue-500 text-white hover:bg-blue-600 transition ${
+                  copied 
+                    ? 'bg-green-500 text-white' 
+                    : ''
+                }`}
+              >
+                {copied ? 'Copied!' : 'Share Results'}
+              </button>
+            </div>
+          )}
         </div>
       </div>
     </div>
