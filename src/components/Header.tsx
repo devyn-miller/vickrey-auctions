@@ -1,39 +1,27 @@
 import React from 'react';
-import { Gavel } from 'lucide-react';
 import { useAuctionStore } from '../store/auctionStore';
 
 export function Header() {
-  const { mode, setMode } = useAuctionStore();
-
   return (
-    <header className="bg-gradient-to-r from-blue-600 to-purple-600 text-white py-6 px-4">
-      <div className="max-w-7xl mx-auto flex items-center justify-between">
-        <div className="flex items-center space-x-3">
-          <Gavel className="h-8 w-8" />
-          <h1 className="text-2xl font-bold">Vickrey Auction Helper</h1>
+    <header className="bg-gradient-to-r from-blue-600 to-indigo-600 text-white py-4">
+      <div className="max-w-7xl mx-auto px-4">
+        <div className="flex justify-between items-center">
+          <div className="flex items-center space-x-2">
+            <h1 className="text-2xl font-bold">Vickrey Auction Helper</h1>
+            <span className="bg-blue-500 text-sm px-2 py-1 rounded">Beta</span>
+          </div>
+          
+          <nav className="flex items-center space-x-6">
+            <a
+              href="https://en.wikipedia.org/wiki/Vickrey_auction"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-blue-200 hover:text-white transition-colors"
+            >
+              Learn More
+            </a>
+          </nav>
         </div>
-        <nav className="space-x-6">
-          <button
-            onClick={() => setMode('calculator')}
-            className={`transition-colors ${
-              mode === 'calculator'
-                ? 'text-white font-semibold'
-                : 'text-blue-200 hover:text-white'
-            }`}
-          >
-            Calculator
-          </button>
-          <button
-            onClick={() => setMode('learn')}
-            className={`transition-colors ${
-              mode === 'learn'
-                ? 'text-white font-semibold'
-                : 'text-blue-200 hover:text-white'
-            }`}
-          >
-            Learn
-          </button>
-        </nav>
       </div>
     </header>
   );
