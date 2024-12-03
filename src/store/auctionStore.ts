@@ -1,8 +1,10 @@
 import { create } from 'zustand';
-import { Bid, AuctionResult, BidderConfig } from '../types/auction';
+import { Bid, AuctionResult, BidderConfig, QuizQuestion } from '../types/auction';
 import { calculateVickreyAuction } from '../utils/auctionCalculator';
+import { generateQuizQuestions } from '../utils/quizGenerator';
 
 interface AuctionStore {
+  mode: 'calculator';
   bids: Bid[];
   itemCount: number;
   bidderCount: number;
@@ -10,6 +12,17 @@ interface AuctionStore {
   results: AuctionResult | null;
   equalBidsPerBidder: boolean;
   bidsPerBidder: number;
+  currentQuiz: QuizQuestion | null;
+  quizProgress: number;
+  currentStep: number;
+  highlightedCells: Array<{
+    bidderId: number;
+    unitIndex: number;
+    type: 'winner' | 'excluded' | 'replacement';
+    excludedFor?: number;
+    vickreyPrice?: number;
+  }>;
+  selectedBids: Bid[];
   setBids: (bids: Bid[]) => void;
   setItemCount: (count: number) => void;
   setBidderCount: (count: number) => void;
@@ -30,13 +43,20 @@ const DEFAULT_STATE = {
   results: null,
   equalBidsPerBidder: true,
   bidsPerBidder: 3,
+  currentQuiz: null,
+  quizProgress: 0,
+  currentStep: 0,
+  highlightedCells: [],
+  selectedBids: [],
 };
 
 export const useAuctionStore = create<AuctionStore>((set, get) => ({
+  mode: 'calculator',
   ...DEFAULT_STATE,
 
   setBids: (bids) => {
     set({ bids });
+    // Recalculate results when bids change
     const results = calculateVickreyAuction(bids, get().itemCount);
     set({ results });
   },
