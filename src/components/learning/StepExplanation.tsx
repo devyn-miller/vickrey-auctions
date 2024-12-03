@@ -1,18 +1,14 @@
 import React from 'react';
 import { useAuctionStore } from '../../store/auctionStore';
 import { Bid } from '../../types/auction';
+import { calculateVStarJ } from '../../utils/auctionCalculator';
 
 export function StepExplanation() {
   const { currentStep, bids, itemCount, results } = useAuctionStore();
 
   // Helper function to format bids array for display
   const formatBids = (bids: Bid[]) => {
-    return `[${bids.map(b => b.amount).join(', ')}]`;
-  };
-
-  // Helper function to format mathematical expressions
-  const formatMath = (expression: string) => {
-    return expression.replace(/\*/g, '∗').replace(/_/g, '₍');
+    return `[${bids.map(b => `$${b.amount} (Bidder ${b.bidderId})`).join(', ')}]`;
   };
 
   const getStepContent = () => {
@@ -54,8 +50,12 @@ export function StepExplanation() {
           formula: 'V* = ∑ᵢ₌₁ᵏ 𝑏ᵢ where k = number of items',
           details: [
             {
+              title: 'Winning Bids:',
+              content: winningBids.map(b => `$${b.amount} (Bidder ${b.bidderId})`).join(', ')
+            },
+            {
               title: 'Calculation:',
-              content: winningBids.map(b => b.amount).join(' + ') + ` = ${totalValue}`
+              content: winningBids.map(b => `$${b.amount}`).join(' + ') + ` = $${totalValue}`
             }
           ],
           explanation: 'The total value (V*) represents the maximum economic value achievable from the auction.'
@@ -70,12 +70,19 @@ export function StepExplanation() {
           ],
           formula: 'V*ⱼ = ∑ᵢ₌₁ᵏ 𝑏ᵢ where 𝑏ᵢ ∉ Bⱼ',
           details: winningBids.map(bid => {
-            const bidsWithoutBidder = sortedBids.filter(b => b.bidderId !== bid.bidderId);
-            const newTopBids = bidsWithoutBidder.slice(0, itemCount);
-            const vStarJ = newTopBids.reduce((sum, b) => sum + b.amount, 0);
+            const vStarJ = calculateVStarJ(bids, itemCount, bid.bidderId);
+            const bidsWithoutBidder = bids.filter(b => b.bidderId !== bid.bidderId)
+              .sort((a, b) => b.amount - a.amount)
+              .slice(0, itemCount);
+            
             return {
               title: `For Bidder ${bid.bidderId}:`,
-              content: `V*ⱼ = ${formatBids(newTopBids)} = ${vStarJ}`
+              content: [
+                '1. Remove all bids from this bidder',
+                `2. Take top ${itemCount} remaining bids`,
+                `3. Remaining Bids: ${formatBids(bidsWithoutBidder)}`,
+                `4. V*j = $${vStarJ}`
+              ].join('\n')
             };
           }),
           explanation: 'V*j shows what the auction value would be without each winner, helping determine their true economic impact.'
@@ -89,10 +96,25 @@ export function StepExplanation() {
             'Ensures bidders pay the opportunity cost they create.'
           ],
           formula: 'Pⱼ = V*ⱼ - (V* - ∑ᵢ∈Wⱼ 𝑏ᵢ)',
-          details: results?.winners.map(winner => ({
-            title: `Bidder ${winner.bidderId}:`,
-            content: `Winning Bid: $${winner.winningBid}\nVickrey Price: $${winner.vickreyPrice}`
-          })) || [],
+          details: winningBids.map(bid => {
+            const vStarJ = calculateVStarJ(bids, itemCount, bid.bidderId);
+            const bidderWinningBids = winningBids.filter(b => b.bidderId === bid.bidderId);
+            const bidderTotalValue = bidderWinningBids.reduce((sum, b) => sum + b.amount, 0);
+            const vickreyPrice = Math.max(0, vStarJ - (totalValue - bidderTotalValue));
+            
+            return {
+              title: `Bidder ${bid.bidderId}:`,
+              content: [
+                `1. V*j = $${vStarJ}`,
+                `2. V* = $${totalValue}`,
+                `3. Bidder's Winning Bids: ${bidderWinningBids.map(b => `$${b.amount}`).join(', ')}`,
+                `4. Total Bidder Value = $${bidderTotalValue}`,
+                `5. Vickrey Price = V*j - (V* - Bidder's Winning Bids)`,
+                `   = $${vStarJ} - ($${totalValue} - $${bidderTotalValue})`,
+                `   = $${vickreyPrice}`
+              ].join('\n')
+            };
+          }),
           explanation: 'The Vickrey price ensures winners pay based on their impact on other bidders, promoting truthful bidding.'
         };
       default:
@@ -130,7 +152,7 @@ export function StepExplanation() {
           {stepContent.details.map((detail, index) => (
             <div key={index} className="mb-3 last:mb-0">
               <p className="text-sm font-medium text-gray-700">{detail.title}</p>
-              <pre className="mt-1 text-sm bg-gray-50 p-2 rounded overflow-x-auto">
+              <pre className="mt-1 text-sm bg-gray-50 p-2 rounded overflow-x-auto whitespace-pre-wrap">
                 {detail.content}
               </pre>
             </div>

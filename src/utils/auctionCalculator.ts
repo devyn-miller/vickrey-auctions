@@ -21,11 +21,38 @@ function assignWinningBids(sortedBids: Bid[], itemCount: number): Map<number, Bi
  * Calculates V*j - the total value when excluding a specific bidder
  * This is the sum of the top k bids after removing ALL of the specified bidder's bids
  */
-function calculateVStarJ(bids: Bid[], itemCount: number, excludedBidderId: number): number {
+export function calculateVStarJ(bids: Bid[], itemCount: number, excludedBidderId: number): number {
+  // Validate inputs
+  if (!bids || bids.length === 0) {
+    console.warn('Empty bids array in calculateVStarJ');
+    return 0;
+  }
+  if (itemCount <= 0) {
+    console.warn('Invalid itemCount in calculateVStarJ');
+    return 0;
+  }
+
   // Remove ALL bids from the excluded bidder
   const bidsWithoutBidder = bids.filter(b => b.bidderId !== excludedBidderId);
-  const sortedBids = [...bidsWithoutBidder].sort((a, b) => b.amount - a.amount);
-  return sortedBids.slice(0, itemCount).reduce((sum, bid) => sum + bid.amount, 0);
+  
+  // Sort remaining bids in descending order
+  const sortedRemainingBids = bidsWithoutBidder.sort((a, b) => b.amount - a.amount);
+  
+  // Take top k bids
+  const topBids = sortedRemainingBids.slice(0, itemCount);
+  
+  // Calculate total value of top bids
+  const vStarJ = topBids.reduce((sum, bid) => sum + bid.amount, 0);
+
+  // Debug logging
+  console.log(`V*j Calculation for Bidder ${excludedBidderId}:`, {
+    totalBids: bids.length,
+    bidsWithoutBidder: bidsWithoutBidder.length,
+    topBidsCount: topBids.length,
+    vStarJ: vStarJ
+  });
+
+  return vStarJ;
 }
 
 export function calculateVickreyAuction(bids: Bid[], itemCount: number): AuctionResult {

@@ -1,20 +1,14 @@
 import React from 'react';
-import { Header } from './components/Header';
 import { AuctionCalculator } from './components/AuctionCalculator';
-import { LearnMode } from './components/LearnMode';
-import { Footer } from './components/Footer';
-import { useAuctionStore } from './store/auctionStore';
+import { Header } from './components/Header';
 
-export function App() {
-  const mode = useAuctionStore((state) => state.mode);
-
+function App() {
   return (
-    <div className="min-h-screen bg-gray-100 flex flex-col">
+    <div className="min-h-screen bg-gray-100">
       <Header />
-      <main className="container mx-auto py-8 flex-grow">
-        {mode === 'calculator' ? <AuctionCalculator /> : <LearnMode />}
+      <main className="container mx-auto px-4 py-8">
+        <AuctionCalculator />
       </main>
-      <Footer />
     </div>
   );
 }
