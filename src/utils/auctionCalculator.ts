@@ -1,33 +1,46 @@
 import { Bid, AuctionResult } from '../types/auction';
 
 /**
- * Calculates V*j - the total value when excluding a specific bidder
- * This is the sum of the top k bids after removing the specified bidder's bids
+ * Maps winning bids to their respective bidders and validates the assignment
  */
-function calculateVStarJ(bids: Bid[], itemCount: number, excludedBidderId: number): number {
-  const bidsWithoutBidder = bids.filter(b => b.bidderId !== excludedBidderId);
-  const sortedBids = [...bidsWithoutBidder].sort((a, b) => b.amount - a.amount);
-  return sortedBids.slice(0, itemCount).reduce((sum, bid) => sum + bid.amount, 0);
-}
-
-export function calculateVickreyAuction(bids: Bid[], itemCount: number): AuctionResult {
-  // Step 1: Select winning bids (top k bids)
-  const sortedBids = [...bids].sort((a, b) => b.amount - a.amount);
+function assignWinningBids(sortedBids: Bid[], itemCount: number): Map<number, Bid[]> {
+  const winningBidderMap = new Map<number, Bid[]>();
   const winningBids = sortedBids.slice(0, itemCount);
   
-  // Step 2: Calculate V* (total auction value)
-  const totalValue = winningBids.reduce((sum, bid) => sum + bid.amount, 0);
-  
-  // Step 3: Group winning bids by bidder
-  const winningBidderMap = new Map<number, Bid[]>();
   winningBids.forEach(bid => {
     if (!winningBidderMap.has(bid.bidderId)) {
       winningBidderMap.set(bid.bidderId, []);
     }
     winningBidderMap.get(bid.bidderId)!.push(bid);
   });
+  
+  return winningBidderMap;
+}
 
-  // Step 4: Calculate results for each winning bidder
+/**
+ * Calculates V*j - the total value when excluding a specific bidder
+ * This is the sum of the top k bids after removing ALL of the specified bidder's bids
+ */
+function calculateVStarJ(bids: Bid[], itemCount: number, excludedBidderId: number): number {
+  // Remove ALL bids from the excluded bidder
+  const bidsWithoutBidder = bids.filter(b => b.bidderId !== excludedBidderId);
+  const sortedBids = [...bidsWithoutBidder].sort((a, b) => b.amount - a.amount);
+  return sortedBids.slice(0, itemCount).reduce((sum, bid) => sum + bid.amount, 0);
+}
+
+export function calculateVickreyAuction(bids: Bid[], itemCount: number): AuctionResult {
+  if (!bids.length || itemCount <= 0) {
+    throw new Error('Invalid input: Bids array must not be empty and item count must be positive');
+  }
+
+  // Step 1: Sort bids and assign winners
+  const sortedBids = [...bids].sort((a, b) => b.amount - a.amount);
+  const winningBidderMap = assignWinningBids(sortedBids, itemCount);
+  
+  // Step 2: Calculate V* (total auction value)
+  const totalValue = sortedBids.slice(0, itemCount).reduce((sum, bid) => sum + bid.amount, 0);
+
+  // Step 3 & 4: Calculate results for each winning bidder
   const winners = Array.from(winningBidderMap.entries()).map(([bidderId, bidderWins]) => {
     // Calculate V*j (value without this bidder)
     const vStarJ = calculateVStarJ(bids, itemCount, bidderId);
@@ -35,69 +48,65 @@ export function calculateVickreyAuction(bids: Bid[], itemCount: number): Auction
     // Calculate total value of this bidder's winning bids
     const bidderTotalValue = bidderWins.reduce((sum, bid) => sum + bid.amount, 0);
     
-    // Calculate Vickrey price using the formula:
-    // Vickrey Price = V*j - (V* - Value of Bidder's Winning Bids)
-    const vickreyPrice = vStarJ - (totalValue - bidderTotalValue);
+    // Calculate Vickrey price
+    const vickreyPrice = Math.max(0, vStarJ - (totalValue - bidderTotalValue));
+    
+    // Calculate savings
+    const savings = bidderTotalValue - vickreyPrice;
     
     return {
       bidderId,
       winningBids: bidderWins.map(b => b.amount).sort((a, b) => b - a),
       vickreyPrice,
       vStarJ,
-      bidderTotalValue
+      bidderTotalValue,
+      savings
     };
   });
 
-  // Step 5: Generate explanation
+  // Step 5: Generate detailed explanation
   const explanation = [
-    `Total Value: $${totalValue}`,
+    'Auction Summary:',
+    `Total Items Available: ${itemCount}`,
+    `Total Auction Value (V*): $${totalValue}`,
     '',
-    'Winners:',
+    'Step 1: Sorted Bids and Winners',
     ...winners.map(w => {
-      const bidsStr = w.winningBids.length === 1 
-        ? `$${w.winningBids[0]}`
-        : `bids [${w.winningBids.map(b => `$${b}`).join(', ')}]`;
-      return `Bidder ${w.bidderId}: Won with ${bidsStr}, pays $${w.vickreyPrice}`;
+      const bidsStr = w.winningBids.map(b => `$${b}`).join(', ');
+      return `Bidder ${w.bidderId}: Won ${w.winningBids.length} unit${w.winningBids.length > 1 ? 's' : ''} with bids [${bidsStr}]`;
     }),
     '',
-    `Total auction value (V*): $${totalValue}`,
+    'Step 2: Total Value Calculation',
+    `V* = $${totalValue} (sum of all winning bids)`,
     '',
-    'For each winner:',
+    'Step 3: V*j Calculations',
+    ...winners.map(w => 
+      `Bidder ${w.bidderId}: V*j = $${w.vStarJ} (auction value without Bidder ${w.bidderId}'s bids)`
+    ),
     '',
+    'Step 4: Vickrey Price Calculations',
     ...winners.map(w => {
-      const lines = [
+      return [
         `Bidder ${w.bidderId}:`,
-        `- Winning bids: ${w.winningBids.map(b => `$${b}`).join(', ')}`,
         `- Total value of winning bids: $${w.bidderTotalValue}`,
         `- V*j (value without bidder): $${w.vStarJ}`,
-        `- Vickrey price calculation:`,
-        `  V*j ($${w.vStarJ}) - (V* ($${totalValue}) - winning bids ($${w.bidderTotalValue}))`,
+        `- Vickrey price = V*j - (V* - winning bids)`,
+        `  = $${w.vStarJ} - ($${totalValue} - $${w.bidderTotalValue})`,
         `  = $${w.vickreyPrice}`,
+        `- Savings: $${w.savings}`,
         ''
-      ];
-      return lines.join('\n');
-    }),
-    'Detailed Calculations:',
-    ...winners.map(w => {
-      const lines = [
-        `For Bidder ${w.bidderId}:`,
-        `1. Original winning bid${w.winningBids.length > 1 ? 's' : ''}: ${w.winningBids.map(b => `$${b}`).join(', ')}`,
-        `2. Total value of winning bids: $${w.bidderTotalValue}`,
-        `3. Vickrey price: $${w.vickreyPrice}`,
-        `4. Total savings: $${w.bidderTotalValue - w.vickreyPrice}`,
-        ''
-      ];
-      return lines.join('\n');
+      ].join('\n');
     })
   ];
 
   return {
-    winners: winners.map(({ bidderId, winningBids, vickreyPrice }) => ({
+    winners: winners.map(({ bidderId, winningBids, vickreyPrice, savings }) => ({
       bidderId,
-      winningBid: Math.max(...winningBids),
-      vickreyPrice
+      winningBids,
+      vickreyPrice,
+      savings
     })),
     totalValue,
-    explanation
+    explanation: explanation.join('\n')
   };
 }

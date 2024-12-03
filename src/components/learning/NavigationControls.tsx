@@ -1,6 +1,6 @@
 import React from 'react';
-import { ArrowLeft, ArrowRight, RotateCcw } from 'lucide-react';
 import { useAuctionStore } from '../../store/auctionStore';
+import { ArrowLeft, ArrowRight, RotateCcw } from 'lucide-react';
 
 export function NavigationControls() {
   const { 
@@ -19,22 +19,64 @@ export function NavigationControls() {
     'Determine Prices'
   ];
 
-  const stepDescriptions = [
-    'Identify the top bids that will win the auction by sorting in descending order.',
-    'Calculate the total value of the auction by summing the top winning bids.',
-    'Compute the auction value without each winning bidder to understand their economic impact.',
-    'Determine the Vickrey price for each winner based on their impact on the auction.'
+  const stepInstructions = [
+    {
+      title: 'Sort Bids',
+      description: 'Identify the highest bids to allocate the available items.',
+      tasks: [
+        'Combine all bids from all bidders into a single list.',
+        'Sort the bids in descending order.',
+        'Select the top k bids, where k is the number of items for sale.',
+        'Assign the winning bids back to the corresponding bidders.'
+      ]
+    },
+    {
+      title: 'Calculate Total Value',
+      description: 'Compute the total value of the winning bids (V*).',
+      tasks: [
+        'Sum the values of the k winning bids identified in Step 1.',
+        'Store this value as V*, the total value from the allocation.'
+      ]
+    },
+    {
+      title: 'Calculate V*j',
+      description: 'Determine the total value of the auction if a specific bidder is excluded.',
+      tasks: [
+        'For each winning bidder, remove their bids from the pool.',
+        'Recompute the top k bids from the remaining bids.',
+        'Sum these bids to calculate V*j, the total value without this bidder\'s participation.'
+      ]
+    },
+    {
+      title: 'Determine Prices',
+      description: 'Calculate the Vickrey price each winning bidder must pay.',
+      tasks: [
+        'For each winning bidder, calculate their Vickrey price.',
+        'Price = V*j - (V* - Value of Bidder\'s Winning Bids)',
+        'Assign this price to the corresponding bidder.'
+      ]
+    }
   ];
+
+  const currentStepInfo = stepInstructions[currentStep];
 
   return (
     <div className="flex flex-col space-y-4">
-      <div className="bg-blue-50 p-4 rounded-lg">
-        <h4 className="text-sm font-semibold text-blue-800 mb-2">
-          Current Step Explanation
+      <div className="bg-gradient-to-r from-blue-50 to-indigo-50 p-4 rounded-lg border border-blue-100">
+        <h4 className="text-lg font-semibold text-blue-800 mb-2">
+          {currentStepInfo.title}
         </h4>
-        <p className="text-sm text-blue-700">
-          {stepDescriptions[currentStep]}
+        <p className="text-blue-700 mb-3">
+          {currentStepInfo.description}
         </p>
+        <div className="space-y-2">
+          <p className="text-sm font-medium text-blue-800">Tasks:</p>
+          <ul className="list-disc list-inside space-y-1">
+            {currentStepInfo.tasks.map((task, index) => (
+              <li key={index} className="text-sm text-blue-700">{task}</li>
+            ))}
+          </ul>
+        </div>
       </div>
 
       <div className="flex justify-between items-center">
@@ -53,7 +95,6 @@ export function NavigationControls() {
 
         <button
           onClick={() => {
-            // Ensure results are calculated when moving to the final step
             if (currentStep === steps.length - 2 && bids.length > 0) {
               calculateResults();
             }

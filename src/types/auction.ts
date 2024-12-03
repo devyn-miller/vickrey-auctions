@@ -13,11 +13,12 @@ export interface BidderConfig {
 export interface AuctionResult {
   winners: {
     bidderId: number;
-    winningBid: number;
+    winningBids: number[];
     vickreyPrice: number;
+    savings: number;
   }[];
   totalValue: number;
-  explanation: string[];
+  explanation: string;
 }
 
 export interface QuizQuestion {
