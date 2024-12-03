@@ -28,33 +28,38 @@ export function NavigationControls() {
         'Sort the bids in descending order.',
         'Select the top k bids, where k is the number of items for sale.',
         'Assign the winning bids back to the corresponding bidders.'
-      ]
+      ],
+      color: 'green'
     },
     {
-      title: 'Calculate Total Value',
-      description: 'Compute the total value of the winning bids (V*).',
+      title: 'Calculate Total Value (V*)',
+      description: 'Compute the total value of the winning bids.',
       tasks: [
         'Sum the values of the k winning bids identified in Step 1.',
         'Store this value as V*, the total value from the allocation.'
-      ]
+      ],
+      color: 'green'
     },
     {
       title: 'Calculate V*j',
       description: 'Determine the total value of the auction if a specific bidder is excluded.',
       tasks: [
-        'For each winning bidder, remove their bids from the pool.',
-        'Recompute the top k bids from the remaining bids.',
-        'Sum these bids to calculate V*j, the total value without this bidder\'s participation.'
-      ]
+        'For each winning bidder:',
+        '- Remove ALL of their winning bids from the pool.',
+        '- Recompute the top k bids from the remaining bids.',
+        '- Sum these bids to calculate V*j, the total value without this bidder\'s participation.'
+      ],
+      color: 'yellow-blue'
     },
     {
       title: 'Determine Prices',
       description: 'Calculate the Vickrey price each winning bidder must pay.',
       tasks: [
-        'For each winning bidder, calculate their Vickrey price.',
-        'Price = V*j - (V* - Value of Bidder\'s Winning Bids)',
+        'For each winning bidder, calculate their Vickrey price:',
+        '- Price = V*j - (V* - Value of Bidder\'s Winning Bids)',
         'Assign this price to the corresponding bidder.'
-      ]
+      ],
+      color: 'final'
     }
   ];
 
@@ -62,18 +67,23 @@ export function NavigationControls() {
 
   return (
     <div className="flex flex-col space-y-4">
-      <div className="bg-gradient-to-r from-blue-50 to-indigo-50 p-4 rounded-lg border border-blue-100">
-        <h4 className="text-lg font-semibold text-blue-800 mb-2">
+      <div className={`
+        p-4 rounded-lg border 
+        ${currentStepInfo.color === 'green' ? 'bg-green-50 border-green-100' : 
+          currentStepInfo.color === 'yellow-blue' ? 'bg-gradient-to-r from-yellow-50 to-blue-50 border-yellow-100' : 
+          'bg-indigo-50 border-indigo-100'}
+      `}>
+        <h4 className="text-lg font-semibold mb-2 text-gray-800">
           {currentStepInfo.title}
         </h4>
-        <p className="text-blue-700 mb-3">
+        <p className="text-gray-700 mb-3">
           {currentStepInfo.description}
         </p>
         <div className="space-y-2">
-          <p className="text-sm font-medium text-blue-800">Tasks:</p>
+          <p className="text-sm font-medium text-gray-800">Tasks:</p>
           <ul className="list-disc list-inside space-y-1">
             {currentStepInfo.tasks.map((task, index) => (
-              <li key={index} className="text-sm text-blue-700">{task}</li>
+              <li key={index} className="text-sm text-gray-700">{task}</li>
             ))}
           </ul>
         </div>

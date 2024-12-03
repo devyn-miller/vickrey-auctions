@@ -71,19 +71,36 @@ export function StepByStepGuide() {
             selectedBids={selectedBids}
           />
 
-          {results && (
-            <div className="mt-6 bg-gray-50 p-4 rounded-lg">
-              <h3 className="text-lg font-semibold mb-4">Auction Results</h3>
-              <div className="space-y-2">
-                <p>Total Auction Value (V*): ${results.totalValue}</p>
-                <div>
-                  <h4 className="font-medium">Winners:</h4>
+          {results && currentStep === 4 && (
+            <div className="mt-6 bg-gradient-to-br from-indigo-50 to-blue-50 p-6 rounded-lg border border-indigo-100">
+              <h3 className="text-xl font-semibold mb-4 text-indigo-800">Final Auction Results</h3>
+              <div className="space-y-4">
+                <div className="bg-white p-4 rounded-lg shadow-sm">
+                  <h4 className="font-semibold text-lg mb-2 text-gray-800">Total Auction Value (V*)</h4>
+                  <p className="text-green-600 text-2xl font-bold">${results.totalValue}</p>
+                </div>
+
+                <div className="space-y-3">
+                  <h4 className="font-semibold text-lg text-gray-800">Winners and Prices</h4>
                   {results.winners.map((winner, index) => (
-                    <p key={index}>
-                      Bidder {winner.bidderId}: 
-                      Winning Bid ${winner.winningBid}, 
-                      Vickrey Price ${winner.vickreyPrice}
-                    </p>
+                    <div 
+                      key={index} 
+                      className="bg-white p-4 rounded-lg shadow-sm border border-gray-100"
+                    >
+                      <div className="flex justify-between items-center">
+                        <div>
+                          <h5 className="font-semibold text-gray-800">Bidder {winner.bidderId}</h5>
+                          <p className="text-gray-600">
+                            Winning Bids: {winner.winningBids.map(bid => `$${bid}`).join(', ')}
+                          </p>
+                        </div>
+                        <div className="text-right">
+                          <p className="text-sm text-gray-500">Vickrey Price</p>
+                          <p className="text-green-600 font-bold text-xl">${winner.vickreyPrice}</p>
+                          <p className="text-sm text-blue-600">Savings: ${winner.savings}</p>
+                        </div>
+                      </div>
+                    </div>
                   ))}
                 </div>
               </div>

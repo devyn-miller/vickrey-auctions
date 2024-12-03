@@ -189,6 +189,7 @@ function calculateHighlightedCells(step: number, bids: Bid[], itemCount: number)
   const sortedBids = [...bids].sort((a, b) => b.amount - a.amount);
   const winningBids = sortedBids.slice(0, itemCount);
 
+  // Step 1: Highlight winning bids in green
   if (step >= 1) {
     winningBids.forEach(bid => {
       highlightedCells.push({
@@ -199,32 +200,38 @@ function calculateHighlightedCells(step: number, bids: Bid[], itemCount: number)
     });
   }
 
-  if (step >= 2) {
-    const currentBidder = Math.floor((step - 2) / winningBids.length);
-    if (currentBidder < winningBids.length) {
-      const bidder = winningBids[currentBidder].bidderId;
-      const bidderBids = bids.filter(b => b.bidderId === bidder);
+  // Step 3: Calculate V*j for each bidder
+  if (step >= 3) {
+    winningBids.forEach(excludedBid => {
+      // Find all winning bids from this bidder
+      const bidderWinningBids = winningBids.filter(b => b.bidderId === excludedBid.bidderId);
       
-      bidderBids.forEach(bid => {
+      // Exclude ALL winning bids from this bidder
+      const remainingBids = sortedBids.filter(b => 
+        !bidderWinningBids.some(wb => wb.amount === b.amount && wb.bidderId === b.bidderId)
+      );
+
+      // Highlight excluded bids in yellow
+      bidderWinningBids.forEach(bid => {
         highlightedCells.push({
           bidderId: bid.bidderId,
           unitIndex: bid.unitIndex || 0,
-          type: 'excluded'
+          type: 'excluded',
+          excludedFor: excludedBid.bidderId
         });
       });
 
-      const remainingBids = sortedBids
-        .filter(b => b.bidderId !== bidder)
-        .slice(0, itemCount);
-
-      remainingBids.forEach(bid => {
+      // Highlight replacement bids in blue
+      const replacementBids = remainingBids.slice(0, itemCount);
+      replacementBids.forEach(bid => {
         highlightedCells.push({
           bidderId: bid.bidderId,
           unitIndex: bid.unitIndex || 0,
-          type: 'replacement'
+          type: 'replacement',
+          excludedFor: excludedBid.bidderId
         });
       });
-    }
+    });
   }
 
   return highlightedCells;
