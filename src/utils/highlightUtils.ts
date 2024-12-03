@@ -10,44 +10,19 @@ export interface HighlightedCell {
   unitIndex: number;
   type: 'winner' | 'excluded' | 'replacement';
   excludedFor?: number;
+  vickreyPrice?: number;
 }
 
 export function getCellHighlight(
-  bid: Bid | undefined,
-  currentStep: number,
-  highlightedCells: HighlightedCell[]
-): CellHighlight {
-  if (!bid) return { className: '' };
-
-  const highlight = highlightedCells.find(
-    h => h.bidderId === bid.bidderId && h.unitIndex === bid.unitIndex
+  highlightedCells: HighlightedCell[],
+  bidderId: number,
+  unitIndex: number
+): HighlightedCell | undefined {
+  if (!Array.isArray(highlightedCells)) return undefined;
+  
+  return highlightedCells.find(
+    h => h.bidderId === bidderId && h.unitIndex === unitIndex
   );
-
-  if (!highlight) return { className: '' };
-
-  switch (highlight.type) {
-    case 'winner':
-      return {
-        className: 'bg-green-100 border-green-300',
-        tooltip: 'Winning bid'
-      };
-    case 'excluded':
-      return {
-        className: 'bg-yellow-100 border-yellow-300',
-        tooltip: highlight.excludedFor 
-          ? `Excluded for V*${highlight.excludedFor} calculation`
-          : 'Excluded for V*j calculation'
-      };
-    case 'replacement':
-      return {
-        className: 'bg-blue-100 border-blue-300',
-        tooltip: highlight.excludedFor 
-          ? `Replacement bid for V*${highlight.excludedFor}`
-          : 'Replacement bid'
-      };
-    default:
-      return { className: '' };
-  }
 }
 
 export function calculateHighlightedCells(

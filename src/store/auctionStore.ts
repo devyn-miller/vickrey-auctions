@@ -18,8 +18,11 @@ interface AuctionStore {
   highlightedCells: Array<{
     bidderId: number;
     unitIndex: number;
-    type: string;
+    type: 'winner' | 'excluded' | 'replacement';
+    excludedFor?: number;
+    vickreyPrice?: number;
   }>;
+  selectedBids: Bid[];
   setBids: (bids: Bid[]) => void;
   setItemCount: (count: number) => void;
   setBidderCount: (count: number) => void;
@@ -49,23 +52,49 @@ const DEFAULT_STATE = {
   quizProgress: 0,
   currentStep: 0,
   highlightedCells: [],
+  selectedBids: [],
 };
 
 export const useAuctionStore = create<AuctionStore>((set, get) => ({
   mode: 'calculator',
   ...DEFAULT_STATE,
 
-  setBids: (bids) => set({ bids }),
+  setBids: (bids) => {
+    set({ bids });
+    // Recalculate results when bids change
+    if (get().mode === 'calculator') {
+      const results = calculateVickreyAuction(bids, get().itemCount);
+      set({ results });
+    }
+    // Update highlighted cells in learn mode
+    if (get().mode === 'learn') {
+      const highlightedCells = calculateHighlightedCells(get().currentStep, bids, get().itemCount);
+      set({ highlightedCells });
+    }
+  },
+
   setItemCount: (count) => set({ itemCount: count }),
   setBidderCount: (count) => set({ bidderCount: count }),
-  setMode: (mode) => set({ mode }),
+  setMode: (mode) => {
+    set({ mode });
+    // Keep the same bids when switching modes
+    const { bids, itemCount } = get();
+    if (mode === 'calculator') {
+      const results = calculateVickreyAuction(bids, itemCount);
+      set({ results });
+    } else {
+      const highlightedCells = calculateHighlightedCells(0, bids, itemCount);
+      set({ currentStep: 0, highlightedCells });
+    }
+  },
   setBidderConfigs: (configs) => set({ bidderConfigs: configs }),
   setEqualBidsPerBidder: (equal) => set({ equalBidsPerBidder: equal }),
   setBidsPerBidder: (count) => set({ bidsPerBidder: count }),
   setCurrentStep: (step) => {
+    set({ currentStep: step });
     const { bids, itemCount } = get();
     const highlightedCells = calculateHighlightedCells(step, bids, itemCount);
-    set({ currentStep: step, highlightedCells });
+    set({ highlightedCells });
   },
 
   calculateResults: () => {
@@ -152,7 +181,9 @@ function calculateHighlightedCells(step: number, bids: Bid[], itemCount: number)
   const highlightedCells: Array<{
     bidderId: number;
     unitIndex: number;
-    type: string;
+    type: 'winner' | 'excluded' | 'replacement';
+    excludedFor?: number;
+    vickreyPrice?: number;
   }> = [];
 
   const sortedBids = [...bids].sort((a, b) => b.amount - a.amount);

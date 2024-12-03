@@ -3,27 +3,25 @@ import { Bid } from '../types/auction';
 import { useAuctionStore } from '../store/auctionStore';
 import { Edit3 } from 'lucide-react';
 
-interface BidTableProps {
-  bids: Bid[];
-}
-
 interface GroupedBids {
   [bidderId: number]: number[];
 }
 
-export function BidTable({ bids }: BidTableProps) {
-  const { setBids, bidderCount, bidsPerBidder, setBidderCount, setBidsPerBidder } = useAuctionStore();
+export function BidTable() {
+  const { bids, setBids, bidderCount, bidsPerBidder, setBidderCount, setBidsPerBidder } = useAuctionStore();
   const [editingCell, setEditingCell] = useState<{bidderId: number, bidIndex: number} | null>(null);
   const [editValue, setEditValue] = useState('');
 
   // Group bids by bidder
   const groupedBids: GroupedBids = {};
-  bids.forEach((bid) => {
-    if (!groupedBids[bid.bidderId]) {
-      groupedBids[bid.bidderId] = [];
-    }
-    groupedBids[bid.bidderId][bid.unitIndex || 0] = bid.amount;
-  });
+  if (bids) {
+    bids.forEach((bid) => {
+      if (!groupedBids[bid.bidderId]) {
+        groupedBids[bid.bidderId] = [];
+      }
+      groupedBids[bid.bidderId][bid.unitIndex || 0] = bid.amount;
+    });
+  }
 
   // Handle dimension changes
   const handleBidderCountChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -50,29 +48,18 @@ export function BidTable({ bids }: BidTableProps) {
 
   const finishEditing = () => {
     if (editingCell) {
-      const newBids = [...bids];
-      const existingBidIndex = bids.findIndex(
-        bid => bid.bidderId === editingCell.bidderId && (bid.unitIndex || 0) === editingCell.bidIndex
+      const { bidderId, bidIndex } = editingCell;
+      const amount = parseInt(editValue) || 0;
+
+      const newBids = [...(bids || [])];
+      const existingBidIndex = newBids.findIndex(
+        bid => bid.bidderId === bidderId && bid.unitIndex === bidIndex
       );
 
-      // Only create/update bid if there's a value (including 0)
-      if (editValue !== '') {
-        const newBid = {
-          bidderId: editingCell.bidderId,
-          amount: parseInt(editValue),
-          unitIndex: editingCell.bidIndex
-        };
-
-        if (existingBidIndex >= 0) {
-          newBids[existingBidIndex] = newBid;
-        } else {
-          newBids.push(newBid);
-        }
+      if (existingBidIndex >= 0) {
+        newBids[existingBidIndex] = { ...newBids[existingBidIndex], amount };
       } else {
-        // Remove bid if it exists and user cleared the input
-        if (existingBidIndex >= 0) {
-          newBids.splice(existingBidIndex, 1);
-        }
+        newBids.push({ bidderId, unitIndex: bidIndex, amount });
       }
 
       setBids(newBids);
